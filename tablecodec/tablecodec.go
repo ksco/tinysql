@@ -43,6 +43,7 @@ const (
 	RecordRowKeyLen       = prefixLen + idLen /*handle*/
 	tablePrefixLength     = 1
 	recordPrefixSepLength = 2
+	indexPrefixSepLength  = 2
 )
 
 // TableSplitKeyLen is the length of key 't{table_id}' which is used for table split.
@@ -69,9 +70,38 @@ func EncodeRowKeyWithHandle(tableID int64, handle int64) kv.Key {
 	return buf
 }
 
+// parseTableIDPart extracts table id from kv.Key
+func parseTableIDPart(key kv.Key) (leftover []byte, tableID int64, err error) {
+	if !key.HasPrefix(tablePrefix) {
+		return nil, 0, errors.New("invalid table prefix")
+	}
+	leftover, tableID, err = codec.DecodeInt(key[tablePrefixLength:])
+	if err != nil {
+		return nil, 0, errors.New("table id parse error")
+	}
+	return
+}
+
 // DecodeRecordKey decodes the key and gets the tableID, handle.
 func DecodeRecordKey(key kv.Key) (tableID int64, handle int64, err error) {
-	/* Your code here */
+	if len(key) != RecordRowKeyLen {
+		return 0, 0, errors.New("invalid record key")
+	}
+	leftoverBytes, tableID, err := parseTableIDPart(key)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	leftover := kv.Key(leftoverBytes)
+	if !leftover.HasPrefix(recordPrefixSep) {
+		return 0, 0, errors.New("invalid handle prefix sep")
+	}
+	handleBytes := leftover[recordPrefixSepLength:]
+	_, handle, err = codec.DecodeInt(handleBytes)
+	if err != nil {
+		return 0, 0, errors.New("handle parse error")
+	}
+
 	return
 }
 
@@ -94,7 +124,23 @@ func EncodeIndexSeekKey(tableID int64, idxID int64, encodedValue []byte) kv.Key 
 
 // DecodeIndexKeyPrefix decodes the key and gets the tableID, indexID, indexValues.
 func DecodeIndexKeyPrefix(key kv.Key) (tableID int64, indexID int64, indexValues []byte, err error) {
-	/* Your code here */
+	if len(key) <= prefixLen+idLen {
+		return 0, 0, nil, errors.New("invalid index key")
+	}
+	leftoverBytes, tableID, err := parseTableIDPart(key)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	leftover := kv.Key(leftoverBytes)
+	if !leftover.HasPrefix(indexPrefixSep) {
+		return 0, 0, nil, errors.New("invalid index prefix sep")
+	}
+	indexIDBytes := leftover[indexPrefixSepLength:]
+	indexValues, indexID, err = codec.DecodeInt(indexIDBytes)
+	if err != nil {
+		return 0, 0, nil, errors.New("index id parse error, " + err.Error())
+	}
 	return tableID, indexID, indexValues, nil
 }
 
