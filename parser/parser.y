@@ -3824,10 +3824,10 @@ JoinTable:
 	}
 
 JoinOnClause:
-  "ON" Expression
-  {
-    $$ = $2
-  }
+	"ON" Expression
+	{
+		$$ = $2
+	}
 
 JoinType:
 	"LEFT"
