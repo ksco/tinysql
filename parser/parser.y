@@ -810,6 +810,7 @@ import (
 	IndexPartSpecificationListOpt   "Optional list of index column name or expression"
 	InsertValues			"Rest part of INSERT/REPLACE INTO statement"
 	JoinTable 			"join table"
+	JoinOnClause  "join on clause"
 	JoinType			"join type"
 	LocationLabelList		"location label name list"
 	LikeEscapeOpt 			"like escape option"
@@ -940,6 +941,7 @@ import (
 	Year			"{YEAR|SQL_TSI_YEAR}"
 	OuterOpt		"optional OUTER clause"
 	CrossOpt		"Cross join option"
+	JoinOpt     "Join option"
 	ShowIndexKwd		"Show index/indexs/key keyword"
 	DistinctKwd		"DISTINCT/DISTINCTROW keyword"
 	FromOrIn		"From or In"
@@ -3805,11 +3807,27 @@ IndexHintListOpt:
 
 JoinTable:
 	/* Use %prec to evaluate production TableRef before cross join */
+	/* ksco: `%prec tableRefPriority` indicts that `JOIN` operator is left associative */
 	TableRef CrossOpt TableRef %prec tableRefPriority
 	{
 		$$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $3.(ast.ResultSetNode), Tp: ast.CrossJoin}
 	}
-	/* Your code here. */
+| TableRef CrossOpt TableRef JoinOnClause %prec tableRefPriority
+  {
+    onCondition := &ast.OnCondition{Expr: $4.(ast.ExprNode)}
+    $$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $3.(ast.ResultSetNode), Tp: ast.CrossJoin, On: onCondition}
+  }
+|	TableRef JoinType OuterOpt JoinOpt TableRef JoinOnClause %prec tableRefPriority
+	{
+    onCondition := &ast.OnCondition{Expr: $6.(ast.ExprNode)}
+		$$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $5.(ast.ResultSetNode), Tp: $2.(ast.JoinType), On: onCondition}
+	}
+
+JoinOnClause:
+  "ON" Expression
+  {
+    $$ = $2
+  }
 
 JoinType:
 	"LEFT"
@@ -3826,8 +3844,14 @@ OuterOpt:
 |	"OUTER"
 
 CrossOpt:
-	"JOIN"
-|	"INNER" "JOIN"
+	JoinOpt
+	{}
+|	"INNER" JoinOpt
+  {}
+
+JoinOpt:
+  "JOIN"
+  {}
 
 
 LimitClause:
