@@ -3812,14 +3812,14 @@ JoinTable:
 	{
 		$$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $3.(ast.ResultSetNode), Tp: ast.CrossJoin}
 	}
-| TableRef CrossOpt TableRef JoinOnClause %prec tableRefPriority
-  {
-    onCondition := &ast.OnCondition{Expr: $4.(ast.ExprNode)}
-    $$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $3.(ast.ResultSetNode), Tp: ast.CrossJoin, On: onCondition}
-  }
+|	TableRef CrossOpt TableRef JoinOnClause %prec tableRefPriority
+	{
+		onCondition := &ast.OnCondition{Expr: $4.(ast.ExprNode)}
+		$$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $3.(ast.ResultSetNode), Tp: ast.CrossJoin, On: onCondition}
+	}
 |	TableRef JoinType OuterOpt JoinOpt TableRef JoinOnClause %prec tableRefPriority
 	{
-    onCondition := &ast.OnCondition{Expr: $6.(ast.ExprNode)}
+		onCondition := &ast.OnCondition{Expr: $6.(ast.ExprNode)}
 		$$ = &ast.Join{Left: $1.(ast.ResultSetNode), Right: $5.(ast.ResultSetNode), Tp: $2.(ast.JoinType), On: onCondition}
 	}
 
@@ -3847,11 +3847,11 @@ CrossOpt:
 	JoinOpt
 	{}
 |	"INNER" JoinOpt
-  {}
+	{}
 
 JoinOpt:
-  "JOIN"
-  {}
+	"JOIN"
+	{}
 
 
 LimitClause:
